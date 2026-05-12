@@ -1,5 +1,7 @@
 package com.mamokey.yeoun.global.rsdata;
 
+import com.mamokey.yeoun.global.exception.ErrorCode;
+
 import java.time.LocalDateTime;
 
 public record RsData<T>(
