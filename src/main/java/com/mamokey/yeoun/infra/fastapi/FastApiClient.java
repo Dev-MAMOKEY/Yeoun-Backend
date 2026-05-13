@@ -1,0 +1,107 @@
+package com.mamokey.yeoun.infra.fastapi;
+
+import com.mamokey.yeoun.global.exception.CustomException;
+import com.mamokey.yeoun.global.exception.ErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class FastApiClient {
+
+    private final RestClient restClient;
+
+    public FastApiPhotoUploadResponse uploadPhoto(UUID personaId, MultipartFile file) {
+        try {
+            return restClient.post()
+                    .uri("/internal/personas/{id}/photo", personaId)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(toMultipart(file))
+                    .retrieve()
+                    .body(FastApiPhotoUploadResponse.class);
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
+        }
+    }
+
+    public FastApiVoiceUploadResponse uploadVoice(UUID personaId, MultipartFile file) {
+        try {
+            return restClient.post()
+                    .uri("/internal/personas/{id}/voice", personaId)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(toMultipart(file))
+                    .retrieve()
+                    .body(FastApiVoiceUploadResponse.class);
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
+        }
+    }
+
+    public void triggerProcess(UUID personaId) {
+        try {
+            restClient.post()
+                    .uri("/internal/personas/{id}/process", personaId)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
+        }
+    }
+
+    public void deletePersona(UUID personaId) {
+        try {
+            restClient.delete()
+                    .uri("/internal/personas/{id}", personaId)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
+        }
+    }
+
+    public byte[] streamIdleClip(UUID personaId, int idx) {
+        try {
+            return restClient.get()
+                    .uri("/internal/personas/{id}/idle-clips/{idx}", personaId, idx)
+                    .retrieve()
+                    .body(byte[].class);
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
+        }
+    }
+
+    public byte[] streamMessageMedia(UUID sessionId, UUID messageId) {
+        try {
+            return restClient.get()
+                    .uri("/internal/sessions/{sessionId}/messages/{messageId}/media", sessionId, messageId)
+                    .retrieve()
+                    .body(byte[].class);
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
+        }
+    }
+
+    private MultiValueMap<String, HttpEntity<?>> toMultipart(MultipartFile file) {
+        try {
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("file", new InputStreamResource(file.getInputStream()))
+                    .filename(file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload")
+                    .contentType(MediaType.parseMediaType(
+                            file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE));
+            return builder.build();
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
+}
