@@ -1,4 +1,4 @@
-package com.mamokey.yeoun.domain.user.auth.dto;
+package com.mamokey.yeoun.domain.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
