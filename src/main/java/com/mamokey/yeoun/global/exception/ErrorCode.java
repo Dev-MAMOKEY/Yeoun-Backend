@@ -36,12 +36,12 @@ public enum ErrorCode {
     AI_SERVER_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVER_REQUEST_FAILED", "AI 서버 요청 중 오류가 발생했습니다."),
     EXTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "EXTERNAL_SERVER_ERROR", "외부 서버 연동 중 오류가 발생했습니다.");
 
-    private final HttpStatus status;
+    private final HttpStatus httpStatus;
     private final String code;
     private final String message;
 
     ErrorCode(HttpStatus status, String code, String message) {
-        this.status = status;
+        this.httpStatus = status;
         this.code = code;
         this.message = message;
     }
