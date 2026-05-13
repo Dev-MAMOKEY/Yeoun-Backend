@@ -9,6 +9,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -28,9 +29,11 @@ public class GlobalExceptionHandler {
             ConstraintViolationException.class
     })
     public ResponseEntity<RsData<Void>> handleValidationException(Exception exception) {
+        String message = extractValidationMessage(exception);
+
         return ResponseEntity
-                .status(ErrorCode.VALIDATION_FAILED.getStatus())
-                .body(RsData.fail(ErrorCode.VALIDATION_FAILED));
+                .status(ErrorCode.VALIDATION_FAILED.getHttpStatus())
+                .body(RsData.fail(ErrorCode.VALIDATION_FAILED, message));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -38,7 +41,7 @@ public class GlobalExceptionHandler {
             MissingServletRequestParameterException exception
     ) {
         return ResponseEntity
-                .status(ErrorCode.MISSING_REQUIRED_VALUE.getStatus())
+                .status(ErrorCode.MISSING_REQUIRED_VALUE.getHttpStatus())
                 .body(RsData.fail(ErrorCode.MISSING_REQUIRED_VALUE));
     }
 
@@ -47,7 +50,7 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException exception
     ) {
         return ResponseEntity
-                .status(ErrorCode.INVALID_PARAMETER.getStatus())
+                .status(ErrorCode.INVALID_PARAMETER.getHttpStatus())
                 .body(RsData.fail(ErrorCode.INVALID_PARAMETER));
     }
 
@@ -56,7 +59,7 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException exception
     ) {
         return ResponseEntity
-                .status(ErrorCode.INVALID_JSON_FORMAT.getStatus())
+                .status(ErrorCode.INVALID_JSON_FORMAT.getHttpStatus())
                 .body(RsData.fail(ErrorCode.INVALID_JSON_FORMAT));
     }
 
@@ -65,7 +68,7 @@ public class GlobalExceptionHandler {
             MaxUploadSizeExceededException exception
     ) {
         return ResponseEntity
-                .status(ErrorCode.FILE_SIZE_EXCEEDED.getStatus())
+                .status(ErrorCode.FILE_SIZE_EXCEEDED.getHttpStatus())
                 .body(RsData.fail(ErrorCode.FILE_SIZE_EXCEEDED));
     }
 
@@ -73,14 +76,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<RsData<Void>> handleBadCredentials(BadCredentialsException exception) {
         return ResponseEntity
-                .status(ErrorCode.INVALID_CREDENTIALS.getStatus())
+                .status(ErrorCode.INVALID_CREDENTIALS.getHttpStatus())
                 .body(RsData.fail(ErrorCode.INVALID_CREDENTIALS));
     }
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<RsData<Void>> handleJwtException(JwtException exception) {
         return ResponseEntity
-                .status(ErrorCode.TOKEN_INVALID.getStatus())
+                .status(ErrorCode.TOKEN_INVALID.getHttpStatus())
                 .body(RsData.fail(ErrorCode.TOKEN_INVALID));
     }
 
@@ -88,7 +91,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<RsData<Void>> handleEntityNotFound(EntityNotFoundException exception) {
         return ResponseEntity
-                .status(ErrorCode.ENTITY_NOT_FOUND.getStatus())
+                .status(ErrorCode.ENTITY_NOT_FOUND.getHttpStatus())
                 .body(RsData.fail(ErrorCode.ENTITY_NOT_FOUND));
     }
 
@@ -98,7 +101,7 @@ public class GlobalExceptionHandler {
             HttpRequestMethodNotSupportedException exception
     ) {
         return ResponseEntity
-                .status(ErrorCode.METHOD_NOT_ALLOWED.getStatus())
+                .status(ErrorCode.METHOD_NOT_ALLOWED.getHttpStatus())
                 .body(RsData.fail(ErrorCode.METHOD_NOT_ALLOWED));
     }
 
@@ -106,7 +109,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<RsData<Void>> handleCustomException(CustomException exception) {
         return ResponseEntity
-                .status(exception.getErrorCode().getStatus())
+                .status(exception.getErrorCode().getHttpStatus())
                 .body(RsData.fail(exception.getErrorCode()));
     }
 
@@ -120,7 +123,37 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity
-                .status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus())
+                .status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
                 .body(RsData.fail(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private String extractValidationMessage(Exception exception) {
+        if (exception instanceof MethodArgumentNotValidException methodArgumentNotValidException) {
+            return methodArgumentNotValidException.getBindingResult()
+                    .getFieldErrors()
+                    .stream()
+                    .findFirst()
+                    .map(FieldError::getDefaultMessage)
+                    .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
+        }
+
+        if (exception instanceof BindException bindException) {
+            return bindException.getBindingResult()
+                    .getFieldErrors()
+                    .stream()
+                    .findFirst()
+                    .map(FieldError::getDefaultMessage)
+                    .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
+        }
+
+        if (exception instanceof ConstraintViolationException constraintViolationException) {
+            return constraintViolationException.getConstraintViolations()
+                    .stream()
+                    .findFirst()
+                    .map(violation -> violation.getMessage())
+                    .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
+        }
+
+        return ErrorCode.VALIDATION_FAILED.getMessage();
     }
 }

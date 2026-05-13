@@ -15,12 +15,17 @@ public enum ErrorCode {
     UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, "UNSUPPORTED_FILE_TYPE", "지원하지 않는 파일 형식입니다."),
     FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "FILE_SIZE_EXCEEDED", "파일 크기가 허용 범위를 초과했습니다."),
 
-    // 인증 관련 예외 처리 (401)
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "아이디 또는 비밀번호가 올바르지 않습니다."),
+    // 인증 관련 예외 처리 (401, 404)
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "TOKEN_EXPIRED", "Access Token이 만료되었습니다."),
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "TOKEN_INVALID", "토큰 형식이 잘못되었거나 서명이 유효하지 않습니다."),
-    REFRESH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_REVOKED", "이미 무효화된 Refresh Token입니다."),
-    PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.UNAUTHORIZED, "PASSWORD_MISMATCH", "현재 비밀번호가 일치하지 않습니다."),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "해당 회원이 존재하지 않습니다."),
+
+    // 회원가입 관련 예외 처리 (400, 409)
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다."),
+    PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_CONFIRMATION_MISMATCH", "비밀번호와 비밀번호 확인이 일치하지 않습니다."),
+    INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "INVALID_EMAIL_FORMAT", "이메일 형식이 올바르지 않습니다."),
+    INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "INVALID_PASSWORD_FORMAT", "비밀번호 형식이 올바르지 않습니다."),
 
     // 404 (리소스 찾을 수 없을 때 예외 처리)
     ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND, "ENTITY_NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),
@@ -36,12 +41,12 @@ public enum ErrorCode {
     AI_SERVER_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVER_REQUEST_FAILED", "AI 서버 요청 중 오류가 발생했습니다."),
     EXTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "EXTERNAL_SERVER_ERROR", "외부 서버 연동 중 오류가 발생했습니다.");
 
-    private final HttpStatus status;
+    private final HttpStatus httpStatus;
     private final String code;
     private final String message;
 
     ErrorCode(HttpStatus status, String code, String message) {
-        this.status = status;
+        this.httpStatus = status;
         this.code = code;
         this.message = message;
     }
