@@ -1,5 +1,6 @@
 package com.mamokey.yeoun.domain.user.entity;
 
+import com.mamokey.yeoun.domain.auth.dto.SignUpResponse;
 import com.mamokey.yeoun.global.entity.GlobalEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,4 +21,8 @@ public class User extends GlobalEntity {
 
     @Column(name = "password_hash" , nullable = false)
     private String password;
+
+    public SignUpResponse toSignupResponse() {
+        return new SignUpResponse(this.getId(), this.getEmail());
+    }
 }
