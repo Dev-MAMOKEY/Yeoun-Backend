@@ -30,6 +30,10 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
+
+        if (!request.password().equals(request.passwordConfirm())) {
+            throw new CustomException(ErrorCode.PASSWORD_CONFIRMATION_MISMATCH);
+        }
         User user = userRepository.save(
                 new User(
                         request.email(),
@@ -41,7 +45,7 @@ public class AuthService {
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        // ① 학번으로 회원 조회
+        // ① 이메일로 아이디 조회
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CREDENTIALS));
 
