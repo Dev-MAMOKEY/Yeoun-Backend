@@ -23,4 +23,8 @@ public record RsData<T>(
     public static <T> RsData<T> fail(ErrorCode errorCode) {
         return new RsData<>(false, null, new ErrorInfo(errorCode.getCode(), errorCode.getMessage()), LocalDateTime.now());
     }
+
+    public static <T> RsData<T> fail(ErrorCode errorCode, String message) {
+        return new RsData<>(false, null, new ErrorInfo(errorCode.getCode(), message), LocalDateTime.now());
+    }
 }

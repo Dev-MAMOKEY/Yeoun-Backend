@@ -9,6 +9,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -28,9 +29,11 @@ public class GlobalExceptionHandler {
             ConstraintViolationException.class
     })
     public ResponseEntity<RsData<Void>> handleValidationException(Exception exception) {
+        String message = extractValidationMessage(exception);
+
         return ResponseEntity
                 .status(ErrorCode.VALIDATION_FAILED.getHttpStatus())
-                .body(RsData.fail(ErrorCode.VALIDATION_FAILED));
+                .body(RsData.fail(ErrorCode.VALIDATION_FAILED, message));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -122,5 +125,35 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
                 .body(RsData.fail(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private String extractValidationMessage(Exception exception) {
+        if (exception instanceof MethodArgumentNotValidException methodArgumentNotValidException) {
+            return methodArgumentNotValidException.getBindingResult()
+                    .getFieldErrors()
+                    .stream()
+                    .findFirst()
+                    .map(FieldError::getDefaultMessage)
+                    .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
+        }
+
+        if (exception instanceof BindException bindException) {
+            return bindException.getBindingResult()
+                    .getFieldErrors()
+                    .stream()
+                    .findFirst()
+                    .map(FieldError::getDefaultMessage)
+                    .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
+        }
+
+        if (exception instanceof ConstraintViolationException constraintViolationException) {
+            return constraintViolationException.getConstraintViolations()
+                    .stream()
+                    .findFirst()
+                    .map(violation -> violation.getMessage())
+                    .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
+        }
+
+        return ErrorCode.VALIDATION_FAILED.getMessage();
     }
 }
