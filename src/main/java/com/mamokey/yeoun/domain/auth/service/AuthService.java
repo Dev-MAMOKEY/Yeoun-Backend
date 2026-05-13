@@ -9,7 +9,6 @@ import com.mamokey.yeoun.domain.user.repository.UserRepository;
 import com.mamokey.yeoun.global.exception.CustomException;
 import com.mamokey.yeoun.global.exception.ErrorCode;
 import com.mamokey.yeoun.global.security.jwt.JwtProvider;
-import com.mamokey.yeoun.global.security.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,8 +21,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private JwtUtil jwtUtil;
-    private JwtProvider jwtProvider;
+    private final JwtProvider jwtProvider;
 
     @Transactional
     public SignUpResponse signup(SignUpRequest request) {

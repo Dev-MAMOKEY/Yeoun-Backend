@@ -1,6 +1,7 @@
 package com.mamokey.yeoun.global.security.jwt;
 
 import com.mamokey.yeoun.global.exception.ErrorCode;
+import com.mamokey.yeoun.global.rsdata.RsData;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -10,16 +11,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.mamokey.yeoun.global.exception.ErrorCode.TOKEN_EXPIRED;
 import static com.mamokey.yeoun.global.exception.ErrorCode.TOKEN_INVALID;
@@ -47,18 +45,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { // 중복 �
         String token = authorizationHeader.substring(BEARER_PREFIX.length());
         try {
             Claims claims = jwtUtil.parseClaims(token); // 토큰에서 클레임 추출
+            validateAccessToken(claims);
 
-            Long memberId = Long.parseLong(claims.getSubject());
+            Long userId = Long.parseLong(claims.getSubject());
 
             // 추출된 정보를 통해 Spring Security가 이해할 수 있도록 인증 객체를 생성해주는 작업
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            memberId, null, List.of(new SimpleGrantedAuthority("ROLE_MEMBER"))); // 인증 객체 생성
+                            userId, null, List.of()); // 인증 객체 생성
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication); // SecurityContext에 인증 객체 저장
         } catch (ExpiredJwtException e) { // 토큰이 만료된 경우 예외처리
+            SecurityContextHolder.clearContext();
             sendErrorResponse(response, TOKEN_EXPIRED);
             return;
         } catch (JwtException e) { // 토큰이 유효하지 않은 경우 예외처리 (형식이 잘못되었거나 서명이 유효하지 않은 경우)
+            SecurityContextHolder.clearContext();
+            sendErrorResponse(response, TOKEN_INVALID);
+            return;
+        } catch (IllegalArgumentException e) { // subject가 비어있거나 회원 ID로 변환할 수 없는 경우
+            SecurityContextHolder.clearContext();
             sendErrorResponse(response, TOKEN_INVALID);
             return;
         }
@@ -66,21 +72,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { // 중복 �
         filterChain.doFilter(request, response); // 다음 필터로 넘어감
     }
 
+    private void validateAccessToken(Claims claims) {
+        String tokenType = claims.get("type", String.class);
+        if (!"access".equals(tokenType)) {
+            throw new JwtException("Access token is required.");
+        }
+    }
+
     private void sendErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
         response.setStatus(errorCode.getHttpStatus().value());
         response.setContentType("application/json; charset=UTF-8");
 
-        // 응답 본문에 포함될 JSON 객체 생성 (success, data, error, timestamp 필드 포함)
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", false);
-        body.put("data", null);
-        body.put("error", Map.of(
-                "code", errorCode.getCode(),
-                "message", errorCode.getMessage()
-        ));
-        body.put("timestamp", LocalDateTime.now().toString());
-
-        response.getWriter() // Map 객체를 JSON 문자열로 변환하여 응답 본문에 작성
-                .write(objectMapper.writeValueAsString(body));
+        response.getWriter()
+                .write(objectMapper.writeValueAsString(RsData.fail(errorCode)));
     }
 }
