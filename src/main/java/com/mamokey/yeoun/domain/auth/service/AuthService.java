@@ -1,5 +1,7 @@
 package com.mamokey.yeoun.domain.auth.service;
 
+import com.mamokey.yeoun.domain.auth.dto.LoginRequest;
+import com.mamokey.yeoun.domain.auth.dto.LoginResponse;
 import com.mamokey.yeoun.domain.auth.dto.SignUpRequest;
 import com.mamokey.yeoun.domain.auth.dto.SignUpResponse;
 import com.mamokey.yeoun.domain.user.entity.User;
@@ -35,5 +37,31 @@ public class AuthService {
                 )
         );
         return user.toSignupResponse();
+    }
+
+    @Transactional
+    public LoginResponse login(LoginRequest request) {
+        // ① 학번으로 회원 조회
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CREDENTIALS));
+
+        // ② 비밀번호 검증
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        // ④ AT/RT 발급
+        String accessToken = jwtProvider.createAccessToken(user.getId());
+        String refreshToken = jwtProvider.createRefreshToken(user.getId());
+        user.updateRefreshToken(refreshToken); // RT DB 저장
+
+        return new LoginResponse(accessToken, refreshToken);
+    }
+
+    @Transactional
+    public void logout(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        user.revokeRefreshToken();
     }
 }
