@@ -2,14 +2,13 @@ package com.mamokey.yeoun.domain.user.entity;
 
 import com.mamokey.yeoun.domain.auth.dto.SignUpResponse;
 import com.mamokey.yeoun.global.entity.GlobalEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -18,13 +17,18 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 public class User extends GlobalEntity {
 
-    @Column(name = "email" , nullable = false)
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "user_id", columnDefinition = "uuid")
+    private UUID id;
+
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "password_hash" , nullable = false)
     private String password;
 
-    @Column(name = "refresh_token")
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
     private String refreshToken;
 
     @Column(name = "rt_at")
@@ -36,7 +40,7 @@ public class User extends GlobalEntity {
     }
 
     public SignUpResponse toSignupResponse() {
-        return new SignUpResponse(this.getId(), this.getEmail());
+        return new SignUpResponse(this.id, this.email);
     }
 
     public void updateRefreshToken(String refreshToken) {
