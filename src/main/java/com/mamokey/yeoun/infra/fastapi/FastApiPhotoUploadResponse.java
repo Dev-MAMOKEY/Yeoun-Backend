@@ -1,7 +1,9 @@
 package com.mamokey.yeoun.infra.fastapi;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record FastApiPhotoUploadResponse(
         String path,
-        long sizeBytes
+        @JsonProperty("size_bytes") long sizeBytes
 ) {
 }

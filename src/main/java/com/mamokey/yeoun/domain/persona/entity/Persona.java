@@ -21,8 +21,8 @@ public class Persona {
     @Column(name = "personas_id", columnDefinition = "uuid")
     private UUID id;
 
-    @Column(name = "owner_user_id", nullable = false)
-    private Long ownerUserId;
+    @Column(name = "owner_user_id", nullable = false, columnDefinition = "uuid")
+    private UUID ownerUserId;
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;
@@ -39,7 +39,7 @@ public class Persona {
     private LocalDateTime createdAt;
 
     @Builder
-    public Persona(String name, String nickname, Long ownerUserId) {
+    public Persona(String name, String nickname, UUID ownerUserId) {
         this.name = name;
         this.nickname = nickname;
         this.ownerUserId = ownerUserId;

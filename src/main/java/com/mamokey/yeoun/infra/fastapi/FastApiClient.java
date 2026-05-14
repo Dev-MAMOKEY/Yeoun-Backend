@@ -29,6 +29,8 @@ public class FastApiClient {
 
     public FastApiPhotoUploadResponse uploadPhoto(UUID personaId, MultipartFile file) {
         try {
+            log.debug("[FastAPI] uploadPhoto: personaId={}, filename={}, contentType={}, size={}",
+                    personaId, file.getOriginalFilename(), file.getContentType(), file.getSize());
             FastApiResponse<FastApiPhotoUploadResponse> response = restClient.post()
                     .uri("/internal/personas/{id}/photo", personaId)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -50,6 +52,8 @@ public class FastApiClient {
 
     public FastApiVoiceUploadResponse uploadVoice(UUID personaId, MultipartFile file) {
         try {
+            log.debug("[FastAPI] uploadVoice: personaId={}, filename={}, contentType={}, size={}",
+                    personaId, file.getOriginalFilename(), file.getContentType(), file.getSize());
             FastApiResponse<FastApiVoiceUploadResponse> response = restClient.post()
                     .uri("/internal/personas/{id}/voice", personaId)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -57,7 +61,14 @@ public class FastApiClient {
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
             return response.data();
+        } catch (RestClientResponseException e) {
+            log.error("[FastAPI] uploadVoice failed: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            if (e.getStatusCode().value() == 409) {
+                throw new CustomException(ErrorCode.PERSONA_PROCESSING);
+            }
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         } catch (RestClientException e) {
+            log.error("[FastAPI] uploadVoice connection failed: {}", e.getMessage());
             throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         }
     }
@@ -79,7 +90,18 @@ public class FastApiClient {
                     .uri("/internal/personas/{id}", personaId)
                     .retrieve()
                     .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 404) {
+                log.warn("[FastAPI] deletePersona: persona not found on AI server, proceeding with DB delete. personaId={}", personaId);
+                return;
+            }
+            if (e.getStatusCode().value() == 409) {
+                throw new CustomException(ErrorCode.PERSONA_PROCESSING);
+            }
+            log.error("[FastAPI] deletePersona failed: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         } catch (RestClientException e) {
+            log.error("[FastAPI] deletePersona connection failed: {}", e.getMessage());
             throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         }
     }
@@ -108,7 +130,11 @@ public class FastApiClient {
 
     private MultiValueMap<String, Object> toMultipart(MultipartFile file) {
         try {
-            String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
+            String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
+            String ext = original.contains(".") ? original.substring(original.lastIndexOf('.')) : "";
+            String filename = UUID.randomUUID() + ext;
+            String contentType = file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
             ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
                 @Override
                 public String getFilename() {
@@ -117,9 +143,8 @@ public class FastApiClient {
             };
 
             HttpHeaders fileHeaders = new HttpHeaders();
-            fileHeaders.setContentType(MediaType.parseMediaType(
-                    file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE
-            ));
+            fileHeaders.setContentType(MediaType.parseMediaType(contentType));
+            fileHeaders.setContentDispositionFormData("file", filename);
 
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new HttpEntity<>(resource, fileHeaders));

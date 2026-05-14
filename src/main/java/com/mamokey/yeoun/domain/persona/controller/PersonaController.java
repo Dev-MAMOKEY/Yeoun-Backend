@@ -24,7 +24,7 @@ public class PersonaController {
 
     @PostMapping
     public ResponseEntity<RsData<PersonaResponse>> createPersona(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @RequestBody @Valid CreatePersonaRequest request
     ) {
         return ResponseEntity.ok(RsData.success(personaService.createPersona(userId, request)));
@@ -32,7 +32,7 @@ public class PersonaController {
 
     @PostMapping("/{personaId}/photo")
     public ResponseEntity<RsData<Void>> uploadPhoto(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId,
             @RequestPart("file") MultipartFile file
     ) {
@@ -42,7 +42,7 @@ public class PersonaController {
 
     @PostMapping("/{personaId}/voice")
     public ResponseEntity<RsData<Void>> uploadVoice(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId,
             @RequestPart("file") MultipartFile file
     ) {
@@ -52,7 +52,7 @@ public class PersonaController {
 
     @PostMapping("/{personaId}/interview")
     public ResponseEntity<RsData<Void>> saveInterview(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId,
             @RequestBody @Valid List<InterviewAnswerRequest> answers
     ) {
@@ -62,7 +62,7 @@ public class PersonaController {
 
     @GetMapping("/{personaId}/status")
     public ResponseEntity<RsData<PersonaStatusResponse>> getStatus(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId
     ) {
         return ResponseEntity.ok(RsData.success(personaService.getStatus(userId, personaId)));
@@ -70,7 +70,7 @@ public class PersonaController {
 
     @GetMapping("/{personaId}/idle-clips")
     public ResponseEntity<RsData<List<IdleClipResponse>>> getIdleClips(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId
     ) {
         return ResponseEntity.ok(RsData.success(personaService.getIdleClips(userId, personaId)));
@@ -78,7 +78,7 @@ public class PersonaController {
 
     @GetMapping("/{personaId}/idle-clips/{idx}")
     public ResponseEntity<byte[]> streamIdleClip(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId,
             @PathVariable int idx
     ) {
@@ -90,7 +90,7 @@ public class PersonaController {
 
     @DeleteMapping("/{personaId}")
     public ResponseEntity<RsData<Void>> deletePersona(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID personaId
     ) {
         personaService.deletePersona(userId, personaId);

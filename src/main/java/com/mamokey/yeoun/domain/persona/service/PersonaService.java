@@ -27,8 +27,11 @@ public class PersonaService {
             "image/jpeg", "image/png", "image/webp"
     );
     private static final Set<String> ALLOWED_VOICE_TYPES = Set.of(
-            "video/mp4", "video/quicktime", "audio/mp4",
-            "audio/mpeg", "audio/wav", "audio/x-wav"
+            "audio/wav", "audio/x-wav",
+            "audio/mpeg", "audio/mp3",
+            "audio/mp4", "audio/m4a", "audio/x-m4a",
+            "audio/webm",
+            "audio/ogg"
     );
 
     private final PersonaRepository personaRepository;
@@ -38,7 +41,7 @@ public class PersonaService {
     private final PersonaIdleClipRepository idleClipRepository;
     private final FastApiClient fastApiClient;
 
-    public PersonaResponse createPersona(Long userId, CreatePersonaRequest request) {
+    public PersonaResponse createPersona(UUID userId, CreatePersonaRequest request) {
         Persona persona = Persona.builder()
                 .name(request.name())
                 .nickname(request.nickname())
@@ -47,7 +50,7 @@ public class PersonaService {
         return PersonaResponse.from(personaRepository.save(persona));
     }
 
-    public void uploadPhoto(Long userId, UUID personaId, MultipartFile file) {
+    public void uploadPhoto(UUID userId, UUID personaId, MultipartFile file) {
         Persona persona = getOwnedPersona(userId, personaId);
         validatePhotoFile(file);
 
@@ -60,7 +63,7 @@ public class PersonaService {
         photoAssetRepository.save(asset);
     }
 
-    public void uploadVoice(Long userId, UUID personaId, MultipartFile file) {
+    public void uploadVoice(UUID userId, UUID personaId, MultipartFile file) {
         Persona persona = getOwnedPersona(userId, personaId);
         validateVoiceFile(file);
 
@@ -74,7 +77,7 @@ public class PersonaService {
         voiceAssetRepository.save(asset);
     }
 
-    public void saveInterview(Long userId, UUID personaId, List<InterviewAnswerRequest> answers) {
+    public void saveInterview(UUID userId, UUID personaId, List<InterviewAnswerRequest> answers) {
         Persona persona = getOwnedPersona(userId, personaId);
 
         List<PersonaInterview> interviews = answers.stream()
@@ -93,13 +96,13 @@ public class PersonaService {
     }
 
     @Transactional(readOnly = true)
-    public PersonaStatusResponse getStatus(Long userId, UUID personaId) {
+    public PersonaStatusResponse getStatus(UUID userId, UUID personaId) {
         Persona persona = getOwnedPersona(userId, personaId);
         return PersonaStatusResponse.from(persona);
     }
 
     @Transactional(readOnly = true)
-    public List<IdleClipResponse> getIdleClips(Long userId, UUID personaId) {
+    public List<IdleClipResponse> getIdleClips(UUID userId, UUID personaId) {
         getOwnedPersona(userId, personaId);
         return idleClipRepository.findAllByPersonaIdOrderBySequenceOrder(personaId)
                 .stream()
@@ -108,20 +111,20 @@ public class PersonaService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] getIdleClipStream(Long userId, UUID personaId, int idx) {
+    public byte[] getIdleClipStream(UUID userId, UUID personaId, int idx) {
         getOwnedPersona(userId, personaId);
         idleClipRepository.findByPersonaIdAndSequenceOrder(personaId, idx)
                 .orElseThrow(() -> new CustomException(ErrorCode.ENTITY_NOT_FOUND));
         return fastApiClient.streamIdleClip(personaId, idx);
     }
 
-    public void deletePersona(Long userId, UUID personaId) {
+    public void deletePersona(UUID userId, UUID personaId) {
         getOwnedPersona(userId, personaId);
         fastApiClient.deletePersona(personaId);
-        personaRepository.deleteById(personaId);
+        personaRepository.deleteByPersonaId(personaId);
     }
 
-    private Persona getOwnedPersona(Long userId, UUID personaId) {
+    private Persona getOwnedPersona(UUID userId, UUID personaId) {
         return personaRepository.findByIdAndOwnerUserId(personaId, userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ENTITY_NOT_FOUND));
     }

@@ -18,9 +18,6 @@ import java.time.LocalDateTime;
 @EntityListeners(GlobalEntityListener.class)
 public class GlobalEntity {
 
-    @Id@GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -30,7 +27,7 @@ public class GlobalEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    public void softDelete() { // 멤버 제명(소프트 딜리트) 위한 메서드
+    public void softDelete() {
         this.deletedAt = LocalDateTime.now();
     }
 
