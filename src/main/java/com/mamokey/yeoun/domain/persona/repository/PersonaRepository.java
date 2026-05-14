@@ -7,15 +7,22 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 public interface PersonaRepository extends JpaRepository<Persona, UUID> {
 
     Optional<Persona> findByIdAndOwnerUserId(UUID id, UUID ownerUserId);
 
+    List<Persona> findAllByOwnerUserId(UUID ownerUserId);
+
     boolean existsByOwnerUserId(UUID ownerUserId);
 
     @Modifying
     @Query("DELETE FROM Persona p WHERE p.id = :id")
     void deleteByPersonaId(@Param("id") UUID id);
+
+    @Modifying
+    @Query("DELETE FROM Persona p WHERE p.ownerUserId = :ownerUserId")
+    void deleteAllByOwnerUserId(@Param("ownerUserId") UUID ownerUserId);
 }
