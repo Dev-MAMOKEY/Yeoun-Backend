@@ -13,9 +13,9 @@ public class JwtProvider {
 
     private final JwtUtil jwtUtil;
 
-    public String createAccessToken(Long memberId) {
+    public String createAccessToken(UUID memberId) {
         return Jwts.builder()
-                .subject(String.valueOf(memberId)) // 회원 ID를 문자열로 설정
+                .subject(memberId.toString()) // 회원 ID를 문자열로 설정
                 .claim("type", "access") // 토큰 유형을 클레임에 추가
                 .id(UUID.randomUUID().toString()) // 고유한 JWT ID 설정
                 .issuedAt(new Date()) // 발급 시간 설정
@@ -24,9 +24,9 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Long memberId) {
+    public String createRefreshToken(UUID memberId) {
         return Jwts.builder()
-                .subject(String.valueOf(memberId)) // 회원 ID를 문자열로 설정
+                .subject(memberId.toString()) // 회원 ID를 문자열로 설정
                 .claim("type", "refresh")
                 .id(UUID.randomUUID().toString()) // 고유한 JWT ID 설정
                 .issuedAt(new Date()) // 발급 시간 설정

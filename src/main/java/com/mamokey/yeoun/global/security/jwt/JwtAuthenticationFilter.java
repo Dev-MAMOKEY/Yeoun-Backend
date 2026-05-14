@@ -18,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 import static com.mamokey.yeoun.global.exception.ErrorCode.TOKEN_EXPIRED;
 import static com.mamokey.yeoun.global.exception.ErrorCode.TOKEN_INVALID;
@@ -47,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { // 중복 �
             Claims claims = jwtUtil.parseClaims(token); // 토큰에서 클레임 추출
             validateAccessToken(claims);
 
-            Long userId = Long.parseLong(claims.getSubject());
+            UUID userId = UUID.fromString(claims.getSubject());
 
             // 추출된 정보를 통해 Spring Security가 이해할 수 있도록 인증 객체를 생성해주는 작업
             UsernamePasswordAuthenticationToken authentication =

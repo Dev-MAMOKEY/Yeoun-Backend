@@ -16,6 +16,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
@@ -63,6 +64,18 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(ErrorCode.INVALID_JSON_FORMAT));
     }
 
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<RsData<Void>> handleMultipart(MultipartException exception,
+            jakarta.servlet.http.HttpServletRequest request) {
+        log.error("[MultipartException] Content-Type={} | isMultipartInstance={} | msg={}",
+                request.getContentType(),
+                request instanceof org.springframework.web.multipart.MultipartHttpServletRequest,
+                exception.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
+                .body(RsData.fail(ErrorCode.INVALID_INPUT_VALUE, "multipart/form-data 형식으로 요청해주세요."));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<RsData<Void>> handleMaxUploadSizeExceeded(
             MaxUploadSizeExceededException exception
@@ -93,6 +106,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.ENTITY_NOT_FOUND.getHttpStatus())
                 .body(RsData.fail(ErrorCode.ENTITY_NOT_FOUND));
+    }
+
+    // 지원하지 않는 Content-Type (415)
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<RsData<Void>> handleHttpMediaTypeNotSupported(
+            org.springframework.web.HttpMediaTypeNotSupportedException exception
+    ) {
+        return ResponseEntity
+                .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
+                .body(RsData.fail(ErrorCode.INVALID_INPUT_VALUE, "지원하지 않는 Content-Type입니다."));
     }
 
     // 허용되지 않은 HTTP 메서드 예외 처리 (405)
