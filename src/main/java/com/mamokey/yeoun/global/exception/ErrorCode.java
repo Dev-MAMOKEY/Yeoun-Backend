@@ -29,6 +29,7 @@ public enum ErrorCode {
 
     // 409 (충돌)
     PERSONA_PROCESSING(HttpStatus.CONFLICT, "PERSONA_PROCESSING", "처리 중인 페르소나에는 업로드할 수 없습니다."),
+    PERSONA_NOT_READY(HttpStatus.CONFLICT, "PERSONA_NOT_READY", "페르소나가 READY 상태가 아닙니다."),
 
     // 404 (리소스 찾을 수 없을 때 예외 처리)
     ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND, "ENTITY_NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),

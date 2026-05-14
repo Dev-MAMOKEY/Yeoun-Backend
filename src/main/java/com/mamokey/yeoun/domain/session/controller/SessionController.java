@@ -1,7 +1,5 @@
 package com.mamokey.yeoun.domain.session.controller;
 
-import com.mamokey.yeoun.domain.session.dto.SendMessageRequest;
-import com.mamokey.yeoun.domain.session.dto.SendMessageResponse;
 import com.mamokey.yeoun.domain.session.dto.SessionStartRequest;
 import com.mamokey.yeoun.domain.session.dto.SessionStartResponse;
 import com.mamokey.yeoun.domain.session.service.SessionService;
@@ -13,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.UUID;
 
@@ -32,14 +32,16 @@ public class SessionController {
         return ResponseEntity.ok(RsData.success(sessionService.startSession(userId, request)));
     }
 
-    // 메시지 전송
-    @PostMapping("/{sessionId}/message")
-    public ResponseEntity<RsData<SendMessageResponse>> sendMessage(
+    // 메시지 전송 (오디오 → SSE 스트림)
+    @PostMapping(value = "/{sessionId}/message",
+                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+                 produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter sendMessage(
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID sessionId,
-            @RequestBody @Valid SendMessageRequest request
+            @RequestPart("audio") MultipartFile audio
     ) {
-        return ResponseEntity.ok(RsData.success(sessionService.sendMessage(userId, sessionId, request)));
+        return sessionService.sendMessage(userId, sessionId, audio);
     }
 
     // 세션 종료
@@ -52,7 +54,7 @@ public class SessionController {
         return ResponseEntity.ok(RsData.success(null));
     }
 
-    // 미디어 스트리밍 (음성·영상)
+    // 미디어 스트리밍 (음성+영상 합본)
     @GetMapping("/{sessionId}/messages/{messageId}/media")
     public ResponseEntity<byte[]> getMessageMedia(
             @AuthenticationPrincipal UUID userId,
