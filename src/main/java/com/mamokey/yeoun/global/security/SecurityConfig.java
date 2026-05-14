@@ -37,7 +37,13 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/auth/signup", "/auth/login").permitAll() // 로그인, 회원가입은 인증 불필요
+                        .requestMatchers(
+                                "/auth/signup",
+                                "/auth/login",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 // JWT 필터를 Spring Security 기본 인증 필터 앞에 배치
