@@ -2,6 +2,7 @@ package com.mamokey.yeoun.global.security;
 
 import com.mamokey.yeoun.global.security.jwt.JwtAuthenticationFilter;
 import com.mamokey.yeoun.global.security.jwt.JwtUtil;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -35,6 +36,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers("/auth/signup", "/auth/login").permitAll() // 로그인, 회원가입은 인증 불필요
                         .anyRequest().authenticated()
                 )
