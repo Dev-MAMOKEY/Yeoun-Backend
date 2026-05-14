@@ -1,0 +1,50 @@
+services:
+  app:
+    container_name: yeoun-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/yeoun
+      SPRING_DATASOURCE_USERNAME: yeoun
+      SPRING_DATASOURCE_PASSWORD: yeoun
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8080
+      CUSTOM_JWT_SECRET_KEY: ${CUSTOM_JWT_SECRET_KEY:-MamoKey-Yeoun-Docker-Local-JWT-Secret-Key-Change-Me-2026}
+      CUSTOM_JWT_ACCESS_EXP_MIN: ${CUSTOM_JWT_ACCESS_EXP_MIN:-60}
+      CUSTOM_JWT_REFRESH_EXP_DAY: ${CUSTOM_JWT_REFRESH_EXP_DAY:-30}
+      CUSTOM_FASTAPI_BASE_URL: ${CUSTOM_FASTAPI_BASE_URL:-http://host.docker.internal:8000}
+      CUSTOM_FASTAPI_INTERNAL_TOKEN: ${CUSTOM_FASTAPI_INTERNAL_TOKEN:-local-fastapi-token}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yeoun-network
+
+  postgres:
+    container_name: yeoun-postgres
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: yeoun
+      POSTGRES_USER: yeoun
+      POSTGRES_PASSWORD: yeoun
+    volumes:
+      - yeoun-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yeoun -d yeoun"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - yeoun-network
+
+volumes:
+  yeoun-postgres-data:
+
+networks:
+  yeoun-network:
+    driver: bridge
