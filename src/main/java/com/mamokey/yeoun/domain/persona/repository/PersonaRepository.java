@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface PersonaRepository extends JpaRepository<Persona, UUID> {
 
-    Optional<Persona> findByIdAndOwnerUserId(UUID id, UUID ownerUserId);
+    Optional<Persona> findByIdAndOwnerUserId(UUID id, Long ownerUserId);
 
-    boolean existsByOwnerUserId(UUID ownerUserId);
+    boolean existsByOwnerUserId(Long ownerUserId);
 }

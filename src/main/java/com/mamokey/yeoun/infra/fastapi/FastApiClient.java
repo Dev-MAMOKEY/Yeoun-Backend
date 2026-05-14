@@ -3,19 +3,24 @@ package com.mamokey.yeoun.infra.fastapi;
 import com.mamokey.yeoun.global.exception.CustomException;
 import com.mamokey.yeoun.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.InputStreamResource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FastApiClient {
@@ -24,25 +29,34 @@ public class FastApiClient {
 
     public FastApiPhotoUploadResponse uploadPhoto(UUID personaId, MultipartFile file) {
         try {
-            return restClient.post()
+            FastApiResponse<FastApiPhotoUploadResponse> response = restClient.post()
                     .uri("/internal/personas/{id}/photo", personaId)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(toMultipart(file))
                     .retrieve()
-                    .body(FastApiPhotoUploadResponse.class);
+                    .body(new ParameterizedTypeReference<>() {});
+            return response.data();
+        } catch (RestClientResponseException e) {
+            log.error("[FastAPI] uploadPhoto failed: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            if (e.getStatusCode().value() == 409) {
+                throw new CustomException(ErrorCode.PERSONA_PROCESSING);
+            }
+            throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         } catch (RestClientException e) {
+            log.error("[FastAPI] uploadPhoto connection failed: {}", e.getMessage());
             throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         }
     }
 
     public FastApiVoiceUploadResponse uploadVoice(UUID personaId, MultipartFile file) {
         try {
-            return restClient.post()
+            FastApiResponse<FastApiVoiceUploadResponse> response = restClient.post()
                     .uri("/internal/personas/{id}/voice", personaId)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(toMultipart(file))
                     .retrieve()
-                    .body(FastApiVoiceUploadResponse.class);
+                    .body(new ParameterizedTypeReference<>() {});
+            return response.data();
         } catch (RestClientException e) {
             throw new CustomException(ErrorCode.AI_SERVER_REQUEST_FAILED);
         }
@@ -92,14 +106,24 @@ public class FastApiClient {
         }
     }
 
-    private MultiValueMap<String, HttpEntity<?>> toMultipart(MultipartFile file) {
+    private MultiValueMap<String, Object> toMultipart(MultipartFile file) {
         try {
-            MultipartBodyBuilder builder = new MultipartBodyBuilder();
-            builder.part("file", new InputStreamResource(file.getInputStream()))
-                    .filename(file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload")
-                    .contentType(MediaType.parseMediaType(
-                            file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE));
-            return builder.build();
+            String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
+            ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return filename;
+                }
+            };
+
+            HttpHeaders fileHeaders = new HttpHeaders();
+            fileHeaders.setContentType(MediaType.parseMediaType(
+                    file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE
+            ));
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new HttpEntity<>(resource, fileHeaders));
+            return body;
         } catch (IOException e) {
             throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
