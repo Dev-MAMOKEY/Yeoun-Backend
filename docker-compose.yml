@@ -1,50 +1,58 @@
+# ---------------------------------------------------------------------------
+# Yeoun Backend — Docker Compose
+# 본 compose 파일은 Docker Hub push 없이 로컬에서 Spring Boot 이미지를 직접 빌드한다.
+# PostgreSQL은 외부에서 호스팅 중인 DB를 사용하므로 DB 컨테이너를 생성하지 않는다.
+# 실행 전 `.env.example`을 `.env`로 복사한 뒤 실제 환경 변수 값을 채운다.
+# ---------------------------------------------------------------------------
+
 services:
+  # Spring Boot 백엔드 애플리케이션 컨테이너.
+  # `docker compose up --build` 실행 시 Dockerfile을 사용해 로컬에서 이미지를 빌드한다.
   app:
     container_name: yeoun-app
+
+    # 현재 레포 루트를 빌드 컨텍스트로 사용한다.
     build:
       context: .
       dockerfile: Dockerfile
+
+    # 호스트 포트는 `.env`의 APP_PORT로 조정 가능하다.
+    # 컨테이너 내부 Spring Boot 포트는 SERVER_PORT=8080으로 고정한다.
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
+
+    # Spring Boot 설정값.
+    # `${VAR:?message}` 형식은 해당 값이 없으면 compose 실행을 즉시 중단한다.
+    # 민감 정보는 docker-compose.yml에 직접 쓰지 않고 `.env`에서 주입한다.
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/yeoun
-      SPRING_DATASOURCE_USERNAME: yeoun
-      SPRING_DATASOURCE_PASSWORD: yeoun
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # 외부 호스팅 PostgreSQL 접속 정보.
+      # 예: jdbc:postgresql://database.example.com:5432/postgres
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:?SPRING_DATASOURCE_URL is required}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:?SPRING_DATASOURCE_USERNAME is required}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
+
+      # 개발/테스트 환경에서는 update, 운영에서는 validate 또는 migration 도입 권장.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
+
+      # Spring Boot 컨테이너 내부 포트.
       SERVER_PORT: 8080
-      CUSTOM_JWT_SECRET_KEY: ${CUSTOM_JWT_SECRET_KEY:-MamoKey-Yeoun-Docker-Local-JWT-Secret-Key-Change-Me-2026}
+
+      # JWT 설정. secret-key는 충분히 긴 랜덤 문자열을 사용한다.
+      CUSTOM_JWT_SECRET_KEY: ${CUSTOM_JWT_SECRET_KEY:?CUSTOM_JWT_SECRET_KEY is required}
       CUSTOM_JWT_ACCESS_EXP_MIN: ${CUSTOM_JWT_ACCESS_EXP_MIN:-60}
       CUSTOM_JWT_REFRESH_EXP_DAY: ${CUSTOM_JWT_REFRESH_EXP_DAY:-30}
-      CUSTOM_FASTAPI_BASE_URL: ${CUSTOM_FASTAPI_BASE_URL:-http://host.docker.internal:8000}
-      CUSTOM_FASTAPI_INTERNAL_TOKEN: ${CUSTOM_FASTAPI_INTERNAL_TOKEN:-local-fastapi-token}
-    depends_on:
-      postgres:
-        condition: service_healthy
+
+      # FastAPI Persona Engine 내부 호출 설정.
+      # FastAPI가 호스트 PC에서 실행 중이면 Windows/Mac Docker Desktop 기준
+      # http://host.docker.internal:8000/ 형태를 사용할 수 있다.
+      CUSTOM_FASTAPI_BASE_URL: ${CUSTOM_FASTAPI_BASE_URL:?CUSTOM_FASTAPI_BASE_URL is required}
+      CUSTOM_FASTAPI_INTERNAL_TOKEN: ${CUSTOM_FASTAPI_INTERNAL_TOKEN:?CUSTOM_FASTAPI_INTERNAL_TOKEN is required}
+
     networks:
       - yeoun-network
-
-  postgres:
-    container_name: yeoun-postgres
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: yeoun
-      POSTGRES_USER: yeoun
-      POSTGRES_PASSWORD: yeoun
-    volumes:
-      - yeoun-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U yeoun -d yeoun"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - yeoun-network
-
-volumes:
-  yeoun-postgres-data:
 
 networks:
+  # 앱 컨테이너 전용 브리지 네트워크.
+  # 현재 compose에는 app 서비스만 있으며 DB 컨테이너는 포함하지 않는다.
   yeoun-network:
     driver: bridge
