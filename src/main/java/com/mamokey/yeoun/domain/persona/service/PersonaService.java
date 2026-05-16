@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -39,7 +40,19 @@ public class PersonaService {
     private final PersonaVoiceAssetRepository voiceAssetRepository;
     private final PersonaInterviewRepository interviewRepository;
     private final PersonaIdleClipRepository idleClipRepository;
+    private final PersonaConsentRepository personaConsentRepository;
     private final FastApiClient fastApiClient;
+
+    public void recordConsent(UUID userId, PersonaConsentRequest request) {
+        PersonaConsent consent = PersonaConsent.builder()
+                .userId(userId)
+                .consentVersion(request.consentVersion())
+                .declinedIntentAnswered(request.declinedIntentAnswered())
+                .agreedAt(LocalDateTime.now())
+                .build();
+
+        personaConsentRepository.save(consent);
+    }
 
     public PersonaResponse createPersona(UUID userId, CreatePersonaRequest request) {
         Persona persona = Persona.builder()
